@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <vector>
+#include <QScrollBar>
 
 class Widget : public QWidget {
     Q_OBJECT
@@ -13,6 +14,7 @@ public:
 
 protected:
     void paintEvent(QPaintEvent *event) override;
+    QSize sizeHint() const override;
 
 private:
     std::vector<int> m_data;
@@ -20,7 +22,11 @@ private:
     QString m_filePath;
     void renderToCache();
     QPixmap m_cachedPixmap;
-    bool m_cacheReady = false;  // flag to know when to render
+    bool m_cacheReady = false;      // flag to know when to render
+
+    int m_viewStartIndex = 0;         // Start index of current visible window
+    int m_viewWindowSize = 1000;      // How many samples to show
+    QScrollBar *m_scrollBar = nullptr;
 };
 
 #endif // WIDGET_H

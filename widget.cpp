@@ -1,35 +1,44 @@
 #include "widget.h"
 #include <QPainter>
 #include <QFileInfo>
+#include <QWheelEvent>
 
 Widget::Widget(QWidget *parent)
     : QWidget(parent) {
-    setMinimumHeight(150);
-    setStyleSheet("background-color: black;");
+    setMinimumHeight(150);  // Ensure vertical size is usable
+    setStyleSheet("background-color: black;");  // Matches rest of waveform styling
 }
+
 
 void Widget::setSignalData(const std::vector<int> &data, int timestep_ns, const QString &path) {
     m_data = data;
     m_timestep_ns = timestep_ns;
     m_filePath = path;
-    // qDebug() << "m_data.size() =" << m_data.size();
-    renderToCache();
+
     m_cacheReady = false;
-    update();  // Trigger repaint
+    renderToCache();      // Render waveform once
+    update();             // Request repaint
+    updateGeometry();     // Notify scroll area of new size
 }
+
 
 void Widget::renderToCache() {
 
     // int maxPoints = 1000;
     // int pointsToDraw = std::min(maxPoints, (int)m_data.size());
+
     int pointsToDraw = static_cast<int>(m_data.size());
+
+    // int pointsToDraw = std::min(m_viewWindowSize, (int)m_data.size() - m_viewStartIndex);
 
     // Layout constants
     const int margin = 10;
-    const int width = this->width() - 2 * margin;
-    const int totalWidth = this->width();
+    const int totalWidth = std::max(static_cast<int>(m_data.size()) * 2 + 2 * margin, this->width());
     const int totalHeight = this->height();
-    int waveformHeight = static_cast<int>(this->height() * 0.45); // Waveform covers 45% of widget height
+    const int width = totalWidth - 2 * margin;
+    int labelSpace = 30;  // Space below waveform for time markers
+    int availableHeight = this->height() - labelSpace;
+    int waveformHeight = static_cast<int>(availableHeight * 1.0);
     int y_offset = 30;  // Space from top for waveform area
     float x_scale = (float)width / (pointsToDraw - 1);
     int y_high = y_offset + 20; // Logic '1' position
@@ -101,4 +110,20 @@ void Widget::paintEvent(QPaintEvent *) {
     // Display cached waveform
     QPainter painter(this);
     painter.drawPixmap(0, 0, m_cachedPixmap);
+
 }
+
+
+QSize Widget::sizeHint() const {
+    int labelSpace = 30;  // Space below waveform for time markers
+    int y_offset = 30;
+    const int margin = 10;
+    int waveformHeight = static_cast<int>((this->height() - labelSpace) * 1.0);
+    const int totalHeight = y_offset + waveformHeight + labelSpace;
+
+    // Width should reflect how much space is needed for all data points
+    int totalWidth = m_data.size() * 2; // You can adjust this scale factor (2 px per point)
+
+    return QSize(totalWidth + 2 * margin, totalHeight);
+}
+
