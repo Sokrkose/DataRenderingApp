@@ -1,5 +1,6 @@
 #include "widget.h"
 #include <QPainter>
+#include <QFileInfo>
 
 Widget::Widget(QWidget *parent)
     : QWidget(parent) {
@@ -7,9 +8,10 @@ Widget::Widget(QWidget *parent)
     setStyleSheet("background-color: black;");
 }
 
-void Widget::setSignalData(const std::vector<int> &data, int timestep_ns) {
+void Widget::setSignalData(const std::vector<int> &data, int timestep_ns, const QString &path) {
     m_data = data;
     m_timestep_ns = timestep_ns;
+    m_filePath = path;
     qDebug() << "m_data.size() =" << m_data.size();
     update();  // Trigger repaint
 }
@@ -17,44 +19,64 @@ void Widget::setSignalData(const std::vector<int> &data, int timestep_ns) {
 void Widget::paintEvent(QPaintEvent *) {
     int maxPoints = 1000;
     int pointsToDraw = std::min(maxPoints, (int)m_data.size());
+    // int pointsToDraw = static_cast<int>(m_data.size());
 
     QPainter painter(this);
     painter.setRenderHint(QPainter::Antialiasing);
-    painter.setPen(Qt::darkGray);
 
     const int margin = 10;
-    const int availableHeight = this->height() - 2 * margin;
     const int width = this->width() - 2 * margin;
+    int waveformHeight = static_cast<int>(this->height() * 0.45);  // Increased from 0.33
+    int y_offset = 30;  // Same offset from top
+
+    // Fill waveform area with black background
+    QRect waveformRect(margin, y_offset, width, waveformHeight);
+    painter.fillRect(waveformRect, Qt::black);
 
     float x_scale = (float)width / (pointsToDraw - 1);
-    int amplitude = availableHeight / 2 - 5;
-    int center = amplitude + margin;
+    int y_high = y_offset + 20;
+    int y_low = y_offset + waveformHeight - 20;
 
-    int y_high = margin + (center - amplitude);
-    int y_low = margin + (center + amplitude);
+
+    // File above waveform
+    QFileInfo fileInfo(m_filePath);
+    QString filename = fileInfo.fileName(); // just the name (e.g., "waveform-data.txt")
+    painter.setPen(Qt::black);
+    QFont pathFont = painter.font();
+    pathFont.setPointSize(10);
+    painter.setFont(pathFont);
+    painter.drawText(margin, y_offset - 15, filename);
 
     // Draw waveform
+    painter.setPen(Qt::green);
+    int prev_x = margin;
+    int prev_y = m_data[0] ? y_high : y_low;
+
     for (int i = 1; i < pointsToDraw; ++i) {
-        int x1 = margin + static_cast<int>((i - 1) * x_scale);
-        int x2 = margin + static_cast<int>(i * x_scale);
+        int curr_x = margin + static_cast<int>(i * x_scale);
+        int curr_y = m_data[i] ? y_high : y_low;
 
-        qDebug() << "Data Point:" << i;
-        qDebug() << "availableHeight:" << availableHeight;
-        qDebug() << "center:" << center << "amplitude:" << amplitude;
-        qDebug() << "y_high:" << y_high << "y_low:" << y_low;
+        if (curr_y == prev_y) {
+            painter.drawLine(prev_x, prev_y, curr_x, curr_y);
+        } else {
+            painter.drawLine(prev_x, prev_y, prev_x, curr_y);
+            painter.drawLine(prev_x, curr_y, curr_x, curr_y);
+        }
 
-        // Map each bit to y: 0 = y_low, 1 = y_high
-        int y1 = m_data[i - 1] ? y_high : y_low;
-        int y2 = m_data[i] ? y_high : y_low;
-
-        painter.drawLine(x1, y1, x2, y2);
+        prev_x = curr_x;
+        prev_y = curr_y;
     }
 
-    // Draw time markers
-    painter.setPen(Qt::darkGray);
+    // Draw time markers inside waveform area
+    QFont timeFont = painter.font();
+    timeFont.setPointSize(12);
+    painter.setFont(timeFont);
+    painter.setPen(Qt::white);
     for (int i = 0; i < pointsToDraw; i += 100) {
         int x = margin + static_cast<int>(i * x_scale);
         float time_ms = (i * m_timestep_ns) / 1000000.0f;
         painter.drawText(x, y_low + 15, QString::number(time_ms, 'f', 2) + " ms");
     }
+
 }
+
