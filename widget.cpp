@@ -12,35 +12,44 @@ void Widget::setSignalData(const std::vector<int> &data, int timestep_ns, const 
     m_data = data;
     m_timestep_ns = timestep_ns;
     m_filePath = path;
-    qDebug() << "m_data.size() =" << m_data.size();
+    // qDebug() << "m_data.size() =" << m_data.size();
+    renderToCache();
+    m_cacheReady = false;
     update();  // Trigger repaint
 }
 
-void Widget::paintEvent(QPaintEvent *) {
-    int maxPoints = 1000;
-    int pointsToDraw = std::min(maxPoints, (int)m_data.size());
-    // int pointsToDraw = static_cast<int>(m_data.size());
+void Widget::renderToCache() {
 
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+    // int maxPoints = 1000;
+    // int pointsToDraw = std::min(maxPoints, (int)m_data.size());
+    int pointsToDraw = static_cast<int>(m_data.size());
 
+    // Layout constants
     const int margin = 10;
     const int width = this->width() - 2 * margin;
-    int waveformHeight = static_cast<int>(this->height() * 0.45);  // Increased from 0.33
-    int y_offset = 30;  // Same offset from top
+    const int totalWidth = this->width();
+    const int totalHeight = this->height();
+    int waveformHeight = static_cast<int>(this->height() * 0.45); // Waveform covers 45% of widget height
+    int y_offset = 30;  // Space from top for waveform area
+    float x_scale = (float)width / (pointsToDraw - 1);
+    int y_high = y_offset + 20; // Logic '1' position
+    int y_low = y_offset + waveformHeight - 20; // Logic '0' position
 
-    // Fill waveform area with black background
+    // Create the pixmap for caching and fill with default UI background (light gray)
+    m_cachedPixmap = QPixmap(totalWidth, totalHeight);
+    m_cachedPixmap.fill(QColor(240, 240, 240)); // Matches QWidget background
+
+    // Create painter to draw on cached pixmap
+    QPainter painter(&m_cachedPixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+
+    // Fill only the waveform area with black
     QRect waveformRect(margin, y_offset, width, waveformHeight);
     painter.fillRect(waveformRect, Qt::black);
 
-    float x_scale = (float)width / (pointsToDraw - 1);
-    int y_high = y_offset + 20;
-    int y_low = y_offset + waveformHeight - 20;
-
-
-    // File above waveform
+    // Draw file name above waveform
     QFileInfo fileInfo(m_filePath);
-    QString filename = fileInfo.fileName(); // just the name (e.g., "waveform-data.txt")
+    QString filename = fileInfo.fileName();
     painter.setPen(Qt::black);
     QFont pathFont = painter.font();
     pathFont.setPointSize(10);
@@ -67,16 +76,29 @@ void Widget::paintEvent(QPaintEvent *) {
         prev_y = curr_y;
     }
 
-    // Draw time markers inside waveform area
+    // Time markers
     QFont timeFont = painter.font();
     timeFont.setPointSize(12);
     painter.setFont(timeFont);
     painter.setPen(Qt::white);
+
     for (int i = 0; i < pointsToDraw; i += 100) {
         int x = margin + static_cast<int>(i * x_scale);
         float time_ms = (i * m_timestep_ns) / 1000000.0f;
         painter.drawText(x, y_low + 15, QString::number(time_ms, 'f', 2) + " ms");
     }
 
+    m_cacheReady = true;
 }
 
+
+void Widget::paintEvent(QPaintEvent *) {
+    // Render waveform only once and reuse the cached image
+    if (!m_cacheReady) {
+        renderToCache();  // expensive operation, only done once
+    }
+
+    // Display cached waveform
+    QPainter painter(this);
+    painter.drawPixmap(0, 0, m_cachedPixmap);
+}
