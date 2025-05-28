@@ -15,12 +15,12 @@ public:
 protected:
     void paintEvent(QPaintEvent *event) override;
     QSize sizeHint() const override;
+    void renderToCache();
 
 private:
     std::vector<int> m_data;
     int m_timestep_ns = 100;
     QString m_filePath;
-    void renderToCache();
     QPixmap m_cachedPixmap;
     bool m_cacheReady = false;      // flag to know when to render
 

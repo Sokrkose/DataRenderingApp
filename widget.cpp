@@ -14,8 +14,8 @@ void Widget::setSignalData(const std::vector<int> &data, int timestep_ns, const 
     m_data = data;
     m_timestep_ns = timestep_ns;
     m_filePath = path;
-
     m_cacheReady = false;
+
     renderToCache();      // Render waveform once
     update();             // Request repaint
     updateGeometry();     // Notify scroll area of new size
@@ -110,7 +110,6 @@ void Widget::paintEvent(QPaintEvent *) {
     // Display cached waveform
     QPainter painter(this);
     painter.drawPixmap(0, 0, m_cachedPixmap);
-
 }
 
 
@@ -126,4 +125,3 @@ QSize Widget::sizeHint() const {
 
     return QSize(totalWidth + 2 * margin, totalHeight);
 }
-

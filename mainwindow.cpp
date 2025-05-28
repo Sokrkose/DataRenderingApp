@@ -18,6 +18,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // Wrap it in a scroll area
     const QString input_file = "C:/Users/skoseogl/cernbox/Documents/Qt/DataRenderingApp/data/waveform-data.txt";
+
     struct data parsedData = dataReader::read(input_file);
     signalWidget->setSignalData(parsedData.values, parsedData.timestep_ns, input_file);
 
@@ -26,10 +27,6 @@ MainWindow::MainWindow(QWidget *parent)
     scrollArea->setWidget(signalWidget);
 
     setCentralWidget(scrollArea);
-
-    // Optionally scroll to a position if needed
-    scrollArea->horizontalScrollBar()->setValue(0);
-
 }
 
 MainWindow::~MainWindow()
