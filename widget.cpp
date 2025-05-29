@@ -121,7 +121,7 @@ QSize Widget::sizeHint() const {
     const int totalHeight = y_offset + waveformHeight + labelSpace;
 
     // Width should reflect how much space is needed for all data points
-    int totalWidth = m_data.size() * 2; // You can adjust this scale factor (2 px per point)
+    int totalWidth = m_data.size() * 2;
 
     return QSize(totalWidth + 2 * margin, totalHeight);
 }

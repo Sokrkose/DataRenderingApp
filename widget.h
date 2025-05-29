@@ -22,7 +22,7 @@ private:
     int m_timestep_ns = 100;
     QString m_filePath;
     QPixmap m_cachedPixmap;
-    bool m_cacheReady = false;      // flag to know when to render
+    bool m_cacheReady = false;        // flag to know when to render
 
     int m_viewStartIndex = 0;         // Start index of current visible window
     int m_viewWindowSize = 1000;      // How many samples to show

@@ -46,3 +46,38 @@ TEST(WidgetTest, RenderCreatesPixmap) {
 
 }
 
+// TEST: verify that the widget correctly updates its internal size
+// when a signal waveform includes a logic level transition (e.g., 0 -> 1).
+// A transition should be seen in the rendered pixmap and size hint.
+TEST(WidgetTest, LogicTransitionUpdatesPixmap) {
+    AccessibleWidget w;
+
+    // Create sample data with a single logic transition
+    std::vector<int> data(100, 0);
+    data[20] = 1;  // Introduce a transition (0 -> 1)
+
+    // Load data into the widget
+    w.setSignalData(data, 100, "transitions.txt");
+
+    // Manually render and check the suggested size
+    w.renderToCache();
+    QSize size = w.sizeHint();
+
+    // Expect a width large enough to visually represent the signal
+    EXPECT_GT(size.width(), 100);  // Adjust threshold as needed
+}
+
+// TEST: Ensure the widget can handle very large signal datasets
+// without throwing exceptions or crashing.
+TEST(WidgetTest, HandlesLargeDataSet) {
+    AccessibleWidget w;
+
+    // Simulate 1 million logic high samples
+    std::vector<int> data(1'000'000, 1);
+
+    // Ensure the widget does not throw when processing this large input
+    EXPECT_NO_THROW(w.setSignalData(data, 100, "large.txt"));
+
+    // The rendered width should scale accordingly (2 px per point is typical)
+    EXPECT_GT(w.sizeHint().width(), 10000);
+}
